@@ -9,8 +9,11 @@ const GithubEnvSchema = z.object({
   GITHUB_REPOSITORY_OWNER: z.string(),
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_REF_NAME: z.string(),
-  GITHUB_HEAD_REF: z.string(),
+  // Only set on pull_request events; absent on push, so it must be optional.
+  GITHUB_HEAD_REF: z.string().optional(),
   GITHUB_BASE_REF: z.string().optional(),
+  LANGUINE_COMMIT_USER_NAME: z.string().min(1).default("Languine Bot"),
+  LANGUINE_COMMIT_USER_EMAIL: z.string().min(1).default("bot@languine.ai"),
 });
 
 export class GitHubProvider implements GitPlatform {
@@ -20,16 +23,27 @@ export class GitHubProvider implements GitPlatform {
   #repo: string;
   #branch: string;
   #baseBranch: string;
+  #committerName: string;
+  #committerEmail: string;
 
   constructor() {
-    const { branch, owner, repository, token, baseBranch } =
-      this.getPlatformConfig();
+    const {
+      branch,
+      owner,
+      repository,
+      token,
+      baseBranch,
+      committerName,
+      committerEmail,
+    } = this.getPlatformConfig();
 
     this.#branch = branch;
     this.#owner = owner;
     this.#repo = repository;
     this.#token = token;
     this.#baseBranch = baseBranch;
+    this.#committerName = committerName;
+    this.#committerEmail = committerEmail;
   }
 
   get octokit(): Octokit {
@@ -40,10 +54,11 @@ export class GitHubProvider implements GitPlatform {
   }
 
   async setupGit() {
-    logger.info("Setting up Git for GitHub...");
-    await execAsync('git config --global user.name "Languine Bot"');
-    await execAsync('git config --global user.email "bot@languine.ai"');
-    await execAsync('git config --global user.username "languinebot"');
+    logger.info(
+      `Setting up Git for GitHub as "${this.#committerName} <${this.#committerEmail}>"...`,
+    );
+    await execAsync(`git config --global user.name "${this.#committerName}"`);
+    await execAsync(`git config --global user.email "${this.#committerEmail}"`);
     await execAsync(`git config --global safe.directory ${process.cwd()}`);
   }
 
@@ -142,7 +157,7 @@ export class GitHubProvider implements GitPlatform {
     const { stdout: lastCommitAuthor } = await execAsync(
       'git log -1 --pretty=format:"%an"',
     );
-    return lastCommitAuthor.trim() === "Languine Bot";
+    return lastCommitAuthor.trim() === this.#committerName;
   }
 
   async hasChanges() {
@@ -192,6 +207,8 @@ export class GitHubProvider implements GitPlatform {
       repository: env.GITHUB_REPOSITORY.split("/")[1],
       token: env.GITHUB_TOKEN,
       baseBranch: env.GITHUB_BASE_REF || "main",
+      committerName: env.LANGUINE_COMMIT_USER_NAME,
+      committerEmail: env.LANGUINE_COMMIT_USER_EMAIL,
     };
   }
 }

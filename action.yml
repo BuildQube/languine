@@ -29,6 +29,14 @@ inputs:
   working-directory:
     description: 'Working directory relative to repository root'
     required: false
+  commit-user-name:
+    description: 'Name for the Git user that authors the translation commit'
+    required: false
+    default: 'Languine Bot'
+  commit-user-email:
+    description: 'Email for the Git user that authors the translation commit'
+    required: false
+    default: 'bot@languine.ai'
 
 runs:
   using: 'docker'
@@ -42,6 +50,8 @@ runs:
     LANGUINE_CREATE_PULL_REQUEST: ${{ inputs.create-pull-request }}
     LANGUINE_COMMIT_MESSAGE: ${{ inputs.commit-message }}
     LANGUINE_PR_TITLE: ${{ inputs.pr-title }}
+    LANGUINE_COMMIT_USER_NAME: ${{ inputs.commit-user-name }}
+    LANGUINE_COMMIT_USER_EMAIL: ${{ inputs.commit-user-email }}
 
 branding:
   icon: 'git-merge'
