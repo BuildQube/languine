@@ -1,0 +1,8 @@
+msgid "welcome_message"
+msgstr "¡Bienvenido a nuestra aplicación!"
+
+msgid "error_message"
+msgstr "Ocurrió un error: {error_code}"
+
+msgid "example_message"
+msgstr "Este es un mensaje de ejemplo con un {variable}"

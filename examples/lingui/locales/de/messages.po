@@ -1,0 +1,20 @@
+msgid "{selected, plural, one {Developer} other {Developers}}"
+msgstr "{selected, plural, one {Entwickler} other {Entwickler}}"
+
+msgid "English"
+msgstr "Englisch"
+
+msgid "next-explanation"
+msgstr "Next.js ist ein Open-Source-React-Frontend-Entwicklungs-Framework, das Funktionen wie serverseitiges Rendering und die Generierung statischer Websites für React-basierte Webanwendungen ermöglicht. Es ist ein produktionsreifes Framework, das Entwicklern ermöglicht, schnell statische und dynamische JAMstack-Websites zu erstellen, und wird von vielen großen Unternehmen weit verbreitet eingesetzt."
+
+msgid "Plural Test: How many developers?"
+msgstr "Plural-Test: Wie viele Entwickler?"
+
+msgid "Serbian"
+msgstr "Serbisch"
+
+msgid "Spanish"
+msgstr "Spanisch"
+
+msgid "Translation Demo"
+msgstr "Übersetzungsdemo"

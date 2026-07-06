@@ -1,0 +1,9 @@
+{
+  "key": "This is a new value",
+  "nested": {
+    "key": "Another new value"
+  },
+  "interpolated": "New value with {{name}}!",
+  "pluralKey_one": "One new value",
+  "pluralKey_other": "Multiple new values"
+}
