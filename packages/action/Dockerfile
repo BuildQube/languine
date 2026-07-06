@@ -1,7 +1,9 @@
 FROM oven/bun:1
 
+# ca-certificates is required for git to verify GitHub's HTTPS cert; the
+# oven/bun base image ships git but not the CA bundle.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git \
+  && apt-get install -y --no-install-recommends git ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /action
