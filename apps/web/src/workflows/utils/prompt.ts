@@ -10,7 +10,8 @@ Translation Requirements:
 - Keep consistent capitalization, spacing, and line breaks
 - Respect existing whitespace and newline patterns
 - Never change the order of the content
-- Each item has a "key" and a "text"; translate only "text" and return one translation per item, in order
+- Each item has a "key" and a "text"; translate only "text"
+- Return {"translations": [{"key": "<the item's key, copied exactly>", "translatedText": "<translation>"}]} with exactly one entry per input item
 - The key is the dot-separated path where the text appears in the UI: use its namespace and neighbouring items to pick the right meaning and gender/number agreement (e.g. a filter label under "notification.filter" agrees with "notifications")
 `;
 

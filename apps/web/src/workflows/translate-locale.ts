@@ -165,29 +165,88 @@ export async function translateLocale(
     total: input.content.length,
   });
 
-  const settings = await loadSettingsStep(input.projectId);
+  // Report failures on the progress stream; otherwise the CLI sees the stream
+  // close without "completed" and treats the run as a silent success.
+  try {
+    const settings = await loadSettingsStep(input.projectId);
 
-  if (
-    (input.sourceFormat === "md" || input.sourceFormat === "mdx") &&
-    input.content.length > 0
-  ) {
-    const document = input.content[0];
+    if (
+      (input.sourceFormat === "md" || input.sourceFormat === "mdx") &&
+      input.content.length > 0
+    ) {
+      const document = input.content[0];
 
-    const result = await translateAndPersistDocumentStep({
-      projectId: input.projectId,
-      sourceFormat: input.sourceFormat,
-      sourceLanguage: input.sourceLanguage,
+      const result = await translateAndPersistDocumentStep({
+        projectId: input.projectId,
+        sourceFormat: input.sourceFormat,
+        sourceLanguage: input.sourceLanguage,
+        targetLocale: input.targetLocale,
+        branch: input.branch,
+        commit: input.commit,
+        sourceProvider: input.sourceProvider,
+        commitMessage: input.commitMessage,
+        commitLink: input.commitLink,
+        settings,
+        document,
+      });
+
+      const translations = result ? [result] : [];
+
+      await emit({
+        type: "completed",
+        targetLocale: input.targetLocale,
+        translations,
+      });
+
+      return { targetLocale: input.targetLocale, translations };
+    }
+
+    const chunkSize = calculateChunkSize(input.content, {
+      sourceLocale: input.sourceLanguage,
       targetLocale: input.targetLocale,
-      branch: input.branch,
-      commit: input.commit,
-      sourceProvider: input.sourceProvider,
-      commitMessage: input.commitMessage,
-      commitLink: input.commitLink,
-      settings,
-      document,
+      sourceFormat: input.sourceFormat,
     });
 
-    const translations = result ? [result] : [];
+    const chunks: Array<typeof input.content> = [];
+    for (let i = 0; i < input.content.length; i += chunkSize) {
+      chunks.push(input.content.slice(i, i + chunkSize));
+    }
+
+    const translations: Array<{ key: string; translatedText: string }> = [];
+    let done = 0;
+
+    for (const chunk of chunks) {
+      const translated = await translateChunkStep(chunk, {
+        sourceLocale: input.sourceLanguage,
+        targetLocale: input.targetLocale,
+        sourceFormat: input.sourceFormat,
+        settings,
+      });
+
+      await persistChunkStep({
+        projectId: input.projectId,
+        sourceFormat: input.sourceFormat,
+        sourceLanguage: input.sourceLanguage,
+        targetLocale: input.targetLocale,
+        branch: input.branch,
+        commit: input.commit,
+        sourceProvider: input.sourceProvider,
+        commitMessage: input.commitMessage,
+        commitLink: input.commitLink,
+        chunk,
+        translated,
+      });
+
+      translations.push(...translated);
+      done += chunk.length;
+
+      await emit({
+        type: "progress",
+        targetLocale: input.targetLocale,
+        done,
+        total: input.content.length,
+      });
+    }
 
     await emit({
       type: "completed",
@@ -196,60 +255,12 @@ export async function translateLocale(
     });
 
     return { targetLocale: input.targetLocale, translations };
-  }
-
-  const chunkSize = calculateChunkSize(input.content, {
-    sourceLocale: input.sourceLanguage,
-    targetLocale: input.targetLocale,
-    sourceFormat: input.sourceFormat,
-  });
-
-  const chunks: Array<typeof input.content> = [];
-  for (let i = 0; i < input.content.length; i += chunkSize) {
-    chunks.push(input.content.slice(i, i + chunkSize));
-  }
-
-  const translations: Array<{ key: string; translatedText: string }> = [];
-  let done = 0;
-
-  for (const chunk of chunks) {
-    const translated = await translateChunkStep(chunk, {
-      sourceLocale: input.sourceLanguage,
-      targetLocale: input.targetLocale,
-      sourceFormat: input.sourceFormat,
-      settings,
-    });
-
-    await persistChunkStep({
-      projectId: input.projectId,
-      sourceFormat: input.sourceFormat,
-      sourceLanguage: input.sourceLanguage,
-      targetLocale: input.targetLocale,
-      branch: input.branch,
-      commit: input.commit,
-      sourceProvider: input.sourceProvider,
-      commitMessage: input.commitMessage,
-      commitLink: input.commitLink,
-      chunk,
-      translated,
-    });
-
-    translations.push(...translated);
-    done += chunk.length;
-
+  } catch (error) {
     await emit({
-      type: "progress",
+      type: "error",
       targetLocale: input.targetLocale,
-      done,
-      total: input.content.length,
+      message: error instanceof Error ? error.message : String(error),
     });
+    throw error;
   }
-
-  await emit({
-    type: "completed",
-    targetLocale: input.targetLocale,
-    translations,
-  });
-
-  return { targetLocale: input.targetLocale, translations };
 }
