@@ -10,7 +10,7 @@ export async function translateKeys(
   content: Array<{ key: string; sourceText: string }>,
   options: PromptOptions,
 ) {
-  const prompt = createFinalPrompt(content, options, options.settings);
+  const prompt = createFinalPrompt(content, options);
 
   const { object } = await generateObject({
     model: getModel(),
@@ -34,7 +34,6 @@ export async function translateDocument(
   const prompt = createFinalPrompt(
     [{ key: "content", sourceText: content }],
     options,
-    options.settings,
   );
 
   const { object } = await generateObject({
