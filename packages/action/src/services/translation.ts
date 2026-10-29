@@ -1,5 +1,4 @@
 import type { Config } from "../utils/config.ts";
-import { runCommand } from "../utils/exec.ts";
 import { logger } from "../utils/logger.ts";
 
 interface ExecError extends Error {
@@ -23,7 +22,9 @@ export class TranslationService {
       logger.debug(`CLI Version: ${cliVersion}`);
       logger.debug(`Working Directory: ${process.cwd()}`);
 
-      await runCommand(
+      // Pipe stderr so we can see "Error translating …": the CLI still exits 0
+      // (and updates languine.lock) when a locale fails, so commit nothing then.
+      const proc = Bun.spawn(
         [
           "bunx",
           cliCommand,
@@ -34,6 +35,8 @@ export class TranslationService {
           apiKey,
         ],
         {
+          stdout: "inherit",
+          stderr: "pipe",
           env: {
             ...process.env,
             LANGUINE_BASE_URL: baseUrl,
@@ -41,9 +44,24 @@ export class TranslationService {
           },
         },
       );
+
+      const stderr = await new Response(proc.stderr).text();
+      process.stderr.write(stderr);
+      const exitCode = await proc.exited;
+
+      assertTranslationSucceeded(exitCode, stderr);
     } catch (error) {
       logger.error(`Translation process failed: ${error}`);
       throw error;
     }
+  }
+}
+
+export function assertTranslationSucceeded(exitCode: number, stderr: string) {
+  if (exitCode !== 0) {
+    throw new Error(`Process failed with exit code ${exitCode}`);
+  }
+  if (stderr.includes("Error translating")) {
+    throw new Error("Languine reported translation errors; not committing.");
   }
 }
