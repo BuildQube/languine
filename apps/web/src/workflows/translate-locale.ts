@@ -1,9 +1,7 @@
-import { getProjectById } from "../db/queries/project";
 import { createDocument, createTranslations } from "../db/queries/translate";
 import { getWritable } from "workflow";
 import { calculateChunkSize } from "./utils/chunk";
 import { translateDocument, translateKeys } from "./utils/translate";
-import type { PromptOptions } from "./utils/types";
 
 export type ProgressEvent =
   | { type: "started"; targetLocale: string; total: number }
@@ -49,23 +47,13 @@ async function emit(event: ProgressEvent) {
   }
 }
 
-async function loadSettingsStep(
-  projectId: string,
-): Promise<PromptOptions["settings"]> {
-  "use step";
-
-  const project = await getProjectById({ id: projectId });
-  if (!project) return undefined;
-
-  // Drop identity and Date columns: only the translation settings cross the step boundary.
-  const { id, name, slug, description, createdAt, updatedAt, ...settings } =
-    project;
-  return settings;
-}
-
 async function translateChunkStep(
   chunk: Array<{ key: string; sourceText: string; sourceFile: string }>,
-  options: PromptOptions,
+  options: {
+    sourceLocale: string;
+    targetLocale: string;
+    sourceFormat: string;
+  },
 ): Promise<Array<{ key: string; translatedText: string }>> {
   "use step";
 
@@ -121,7 +109,6 @@ async function translateAndPersistDocumentStep(input: {
   sourceProvider?: string | null;
   commitMessage?: string | null;
   commitLink?: string | null;
-  settings: PromptOptions["settings"];
   document: { key: string; sourceText: string; sourceFile: string };
 }): Promise<{ key: string; translatedText: string } | null> {
   "use step";
@@ -130,7 +117,6 @@ async function translateAndPersistDocumentStep(input: {
     sourceLocale: input.sourceLanguage,
     targetLocale: input.targetLocale,
     sourceFormat: input.sourceFormat,
-    settings: input.settings,
   });
 
   const translatedText = result?.[0];
@@ -165,8 +151,6 @@ export async function translateLocale(
     total: input.content.length,
   });
 
-  const settings = await loadSettingsStep(input.projectId);
-
   if (
     (input.sourceFormat === "md" || input.sourceFormat === "mdx") &&
     input.content.length > 0
@@ -183,7 +167,6 @@ export async function translateLocale(
       sourceProvider: input.sourceProvider,
       commitMessage: input.commitMessage,
       commitLink: input.commitLink,
-      settings,
       document,
     });
 
@@ -217,7 +200,6 @@ export async function translateLocale(
       sourceLocale: input.sourceLanguage,
       targetLocale: input.targetLocale,
       sourceFormat: input.sourceFormat,
-      settings,
     });
 
     await persistChunkStep({
