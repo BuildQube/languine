@@ -10,6 +10,8 @@ Translation Requirements:
 - Keep consistent capitalization, spacing, and line breaks
 - Respect existing whitespace and newline patterns
 - Never change the order of the content
+- Each item has a "key" and a "text"; translate only "text" and return one translation per item, in order
+- The key is the dot-separated path where the text appears in the UI: use its namespace and neighbouring items to pick the right meaning and gender/number agreement (e.g. a filter label under "notification.filter" agrees with "notifications")
 `;
 
 const mapFormatToPrompt = (format?: string) => {
@@ -86,7 +88,7 @@ ${fileSpecificInstructions(options.sourceFormat)}`;
     settings.domainExpertise &&
       `- Use terminology appropriate for ${settings.domainExpertise} domain`,
     settings.terminology &&
-      `- Follow specific terminology: ${settings.terminology}`,
+      `- Follow this project glossary and context exactly; it overrides general word choice:\n${settings.terminology}`,
 
     // Feature flags
     settings.translationMemory &&
@@ -107,7 +109,7 @@ ${fileSpecificInstructions(options.sourceFormat)}`;
       ? `\nAdditional Requirements:\n${tuningInstructions}`
       : ""
   }\nContent:\n${JSON.stringify(
-    content.map(({ sourceText }) => sourceText),
+    content.map(({ key, sourceText }) => ({ key, text: sourceText })),
     null,
     2,
   )}`;
