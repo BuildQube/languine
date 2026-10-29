@@ -21,7 +21,6 @@ export async function POST(request: Request) {
 
     const project = await db.query.projects.findFirst({
       where: eq(projects.id, projectId),
-      columns: { id: true },
     });
 
     if (!project) {
@@ -39,6 +38,7 @@ export async function POST(request: Request) {
         sourceLocale,
         targetLocale,
         sourceFormat: format,
+        settings: project,
       },
     );
 
