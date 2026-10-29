@@ -14,10 +14,16 @@ mock.module("@/db/queries/translate", () => ({
   createTranslations: async () => [],
 }));
 
+let lastOptions: { settings?: { terminology?: string } } | undefined;
+
 mock.module("@/workflows/utils/translate", () => ({
   translateKeys: async (
     content: Array<{ key: string; sourceText: string }>,
-  ) => content.map((c) => `[sv] ${c.sourceText}`),
+    options: typeof lastOptions,
+  ) => {
+    lastOptions = options;
+    return content.map((c) => `[sv] ${c.sourceText}`);
+  },
 }));
 
 mock.module("@/db", () => ({
@@ -26,7 +32,7 @@ mock.module("@/db", () => ({
       projects: {
         findFirst: async (_opts: unknown) => {
           void _opts;
-          return { id: "prj_1" };
+          return { id: "prj_1", terminology: "takeoff → cuantificación" };
         },
       },
     },
@@ -84,6 +90,7 @@ describe("POST /api/translate", () => {
     const json = (await res.json()) as { success: boolean; translatedText: string };
     expect(json.success).toBe(true);
     expect(json.translatedText).toBe("[sv] Hello");
+    expect(lastOptions?.settings?.terminology).toBe("takeoff → cuantificación");
   });
 
   test("returns 404 for unknown project", async () => {

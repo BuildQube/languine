@@ -40,4 +40,25 @@ describe("createFinalPrompt", () => {
     expect(prompt).toContain("professional");
     expect(prompt).toContain("Acme");
   });
+
+  test("sends each key alongside its text for context", () => {
+    const prompt = createFinalPrompt(
+      [{ key: "notification.filter.archived", sourceText: "Archived" }],
+      { sourceLocale: "en", targetLocale: "es" },
+    );
+
+    expect(prompt).toContain('"key": "notification.filter.archived"');
+    expect(prompt).toContain('"text": "Archived"');
+  });
+
+  test("includes the project glossary as a binding instruction", () => {
+    const prompt = createFinalPrompt(
+      [{ key: "takeoff.actions.create", sourceText: "New takeoff" }],
+      { sourceLocale: "en", targetLocale: "es" },
+      { terminology: "takeoff → cuantificación" },
+    );
+
+    expect(prompt).toContain("glossary");
+    expect(prompt).toContain("takeoff → cuantificación");
+  });
 });
